@@ -143,6 +143,25 @@ def encrypt_msg(G, m):
     return codeword_err
 
 
+def decrypt_msg(m2):
+    m3 = (m2 @ R_inv) % 2
+
+    # print('m3 =', m3)
+    # print('m3[0] =', m3.A1)
+
+    arr = np.array(m3.A1)
+    u00 = arr[0::2]
+    u10 = (u00 + 1) % 2
+    u01 = arr[1::2]
+    u11 = (u01 + 1) % 2
+
+    # print('arr =', arr)
+    # print('u00 =', u00)
+    # print('u01 =', u01)
+    # print('u10 =', u10)
+    # print('u11 =', u11)
+
+
 def cccrypto():
 
     G = generate_public_key()
@@ -155,6 +174,10 @@ def cccrypto():
 
     print(f'msg = {m}')
     print(f'encrypt-msg = {m2}')
+
+    m_org = decrypt_msg(m2)
+
+    print('m_org = ', m_org)
 
 
 def test():
