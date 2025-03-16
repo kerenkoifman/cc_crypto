@@ -11,81 +11,8 @@ from scipy.ndimage import shift
 # randomize
 np.random.seed(12345)
 
-# 1+x^2
-p0 = np.array([1, 0, 1])
-# 1+x+x^2
-p1 = np.array([1, 1, 1])
 
-g0 = np.array([1, 1])
-g1 = np.array([0, 1])
-g2 = np.array([1, 1])
-
-# 1+x^7
-p0 = np.array([1, 0, 0, 0, 0, 0, 0, 1])
-# x^7
-p1 = np.array([0, 0, 0, 0, 0, 0, 0, 1])
-
-pq0 = np.array([1, 0, 1, 0, 0, 0, 0, 1, 0, 1])
-pq1 = np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 1])
-
-
-
-
-v = np.zeros(shape=(1, 16), dtype=int)
-v[0,0] = 1
-v[0,1] = 1
-v[0,2] = 0
-v[0,3] = 1
-v[0,4] = 1
-v[0,5] = 1
-
-k_rows = 6
-Gp = np.zeros(shape=(k_rows, 16), dtype=int)
-t = v.copy()
-for i in range(k_rows):
-    Gp[i] = t
-    t[0] = shift(t[0], 2, cval=0)
-    # print('t=', t)
-
-# define message - plaintext
-m = np.array([1, 1, 1, 0, 0, 1])
-
-d = m @ Gp
-d = d % 2
-# print("d =", d)
-
-
-pqv = np.zeros(shape=(1, 30), dtype=int)
-for i in range(10):
-    pqv[0,2*i] = pq0[i]
-    pqv[0,2*i+1] = pq1[i]
-
-
-Gpq = np.zeros(shape=(k_rows, 30), dtype=int)
-t = pqv.copy()
-for i in range(k_rows):
-    Gpq[i] = t
-    t[0] = shift(t[0], 2, cval=0)
-    # print('t=', t)
-
-# print('pqv:', pqv)
-# print('Gpq:', Gpq)
-
-l0 = np.array([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0])
-l1 = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
-L = [l0, l1]
-
-G_hat = np.zeros((6,30), dtype=int)
-# print('G_hat-shape:', G_hat.shape)
-# print('G_hat:', G_hat)
-
-for i in range(k_rows):
-    G_hat[i] = random.choice(L)
-
-# print('G_hat:', G_hat)
-
-G_sum = (Gpq + G_hat) % 2
-
+# global variables
 S = np.matrix([
     [1, 0, 0, 1, 0, 0],
     [0, 1, 0, 0, 0, 1],
@@ -114,25 +41,120 @@ R_inv = np.eye(30)[inv_p].astype(int)
 # print("\nInverse permutation matrix:\n", R_inv)
 
 
-G = (S@G_sum@R) % 2
 
-codeword = (m@G) % 2
+def generate_public_key():
+    # 1+x^2
+    p0 = np.array([1, 0, 1])
+    # 1+x+x^2
+    p1 = np.array([1, 1, 1])
 
-err = np.zeros(shape=(1, 30), dtype=int)
-error_count = 3
-for i in range(error_count):
-    pos = random.randint(0,30-1)
-    err[0,pos] = 1
+    g0 = np.array([1, 1])
+    g1 = np.array([0, 1])
+    g2 = np.array([1, 1])
 
-# print('err:         ', err)
+    # 1+x^7
+    p0 = np.array([1, 0, 0, 0, 0, 0, 0, 1])
+    # x^7
+    p1 = np.array([0, 0, 0, 0, 0, 0, 0, 1])
 
-codeword_err = (codeword + err) % 2
-
-# print('codeword:    ', codeword)
-# print('codeword_err:', codeword_err)
+    pq0 = np.array([1, 0, 1, 0, 0, 0, 0, 1, 0, 1])
+    pq1 = np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 1])
 
 
-# def generate_public_key():
+
+
+    v = np.zeros(shape=(1, 16), dtype=int)
+    v[0,0] = 1
+    v[0,1] = 1
+    v[0,2] = 0
+    v[0,3] = 1
+    v[0,4] = 1
+    v[0,5] = 1
+
+    k_rows = 6
+    Gp = np.zeros(shape=(k_rows, 16), dtype=int)
+    t = v.copy()
+    for i in range(k_rows):
+        Gp[i] = t
+        t[0] = shift(t[0], 2, cval=0)
+        # print('t=', t)
+
+
+    # not needed due to matrix use
+    # m = np.array([1, 1, 1, 0, 0, 1])
+    # d = m @ Gp
+    # d = d % 2
+    # print("d =", d)
+
+
+    pqv = np.zeros(shape=(1, 30), dtype=int)
+    for i in range(10):
+        pqv[0,2*i] = pq0[i]
+        pqv[0,2*i+1] = pq1[i]
+
+
+    Gpq = np.zeros(shape=(k_rows, 30), dtype=int)
+    t = pqv.copy()
+    for i in range(k_rows):
+        Gpq[i] = t
+        t[0] = shift(t[0], 2, cval=0)
+        # print('t=', t)
+
+    # print('pqv:', pqv)
+    # print('Gpq:', Gpq)
+
+    l0 = np.array([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0])
+    l1 = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+    L = [l0, l1]
+
+    G_hat = np.zeros((6,30), dtype=int)
+    # print('G_hat-shape:', G_hat.shape)
+    # print('G_hat:', G_hat)
+
+    for i in range(k_rows):
+        G_hat[i] = random.choice(L)
+
+    # print('G_hat:', G_hat)
+
+    G_sum = (Gpq + G_hat) % 2
+
+
+    G = (S@G_sum@R) % 2
+
+    return G
+
+
+def encrypt_msg(G, m):
+    codeword = (m@G) % 2
+
+    err = np.zeros(shape=(1, 30), dtype=int)
+    error_count = 3
+    for i in range(error_count):
+        pos = random.randint(0,30-1)
+        err[0,pos] = 1
+
+    # print('err:         ', err)
+
+    codeword_err = (codeword + err) % 2
+
+    # print('codeword:    ', codeword)
+    # print('codeword_err:', codeword_err)
+
+    return codeword_err
+
+
+def cccrypto():
+
+    G = generate_public_key()
+
+    # define message - plaintext
+    m = np.array([1, 1, 1, 0, 0, 1])
+
+    # m2 is the encrypted message
+    m2 = encrypt_msg(G, m)
+
+    print(f'msg = {m}')
+    print(f'encrypt-msg = {m2}')
 
 
 def test():
@@ -147,7 +169,9 @@ def test():
 def main():
     print("in main")
 
-    test()
+    # test()
+
+    cccrypto()
 
 
 # using the special variable __main__
