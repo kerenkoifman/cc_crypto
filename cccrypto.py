@@ -6,6 +6,7 @@ import io
 import base64
 from numpy.linalg import inv
 
+
 from scipy.ndimage import shift
 
 # randomize
@@ -53,14 +54,12 @@ def generate_public_key():
     g2 = np.array([1, 1])
 
     # 1+x^7
-    p0 = np.array([1, 0, 0, 0, 0, 0, 0, 1])
+    q0 = np.array([1, 0, 0, 0, 0, 0, 0, 1])
     # x^7
-    p1 = np.array([0, 0, 0, 0, 0, 0, 0, 1])
+    q1 = np.array([0, 0, 0, 0, 0, 0, 0, 1])
 
-    pq0 = np.array([1, 0, 1, 0, 0, 0, 0, 1, 0, 1])
-    pq1 = np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 1])
-
-
+    pq0 = np.convolve(p0, q0) % 2
+    pq1 = np.convolve(p1, q1) % 2
 
 
     v = np.zeros(shape=(1, 16), dtype=int)
@@ -114,6 +113,9 @@ def generate_public_key():
     for i in range(k_rows):
         G_hat[i] = random.choice(L)
 
+
+
+
     # print('G_hat:', G_hat)
 
     G_sum = (Gpq + G_hat) % 2
@@ -133,6 +135,7 @@ def encrypt_msg(G, m):
         pos = random.randint(0,30-1)
         err[0,pos] = 1
 
+
     # print('err:         ', err)
 
     codeword_err = (codeword + err) % 2
@@ -145,9 +148,22 @@ def encrypt_msg(G, m):
 
 def decrypt_msg(m2):
     m3 = (m2 @ R_inv) % 2
+    print('m3 =', m3, m3.shape, type(m3))
 
-    # print('m3 =', m3)
-    # print('m3[0] =', m3.A1)
+    m3 = np.array([
+        0, 1, 0, 1, 0, 1, 0, 1, 
+        0, 1, 0, 1, 0, 1, 1, 0, 
+        0, 0, 0, 1, 1, 1, 0, 1, 
+        0, 1, 0, 0, 1, 1])
+    
+    m3 = np.matrix([m3])
+    print('m3 =', m3, type(m3))
+    print('m3[0] =', m3.A1)
+
+    # 1+x^7
+    q0 = np.array([1, 0, 0, 0, 0, 0, 0, 1])
+    # x^7
+    q1 = np.array([0, 0, 0, 0, 0, 0, 0, 1])
 
     arr = np.array(m3.A1)
     u00 = arr[0::2]
@@ -156,10 +172,135 @@ def decrypt_msg(m2):
     u11 = (u01 + 1) % 2
 
     # print('arr =', arr)
-    # print('u00 =', u00)
-    # print('u01 =', u01)
-    # print('u10 =', u10)
-    # print('u11 =', u11)
+    print('u00 =', u00)
+    print('u01 =', u01)
+    print('u10 =', u10)
+    print('u11 =', u11)
+    print('u00-type =', type(u00))
+
+    # convert NumPy binary array to integer
+    binary_u00 = u00.dot(1 << np.arange(u00.size))
+    binary_q0 = q0.dot(1 << np.arange(q0.size))
+    print('binary_u00=', bin(binary_u00), type(binary_u00))
+    quot00, r = binary_poly_div(int(binary_u00), int(binary_q0))
+
+    binary_u10 = u10.dot(1 << np.arange(u10.size))
+    binary_q0 = q0.dot(1 << np.arange(q0.size))
+    print('binary_u10=', bin(binary_u10), type(binary_u10))
+    quot10, r = binary_poly_div(int(binary_u10), int(binary_q0))
+
+    binary_u01 = u01.dot(1 << np.arange(u01.size))
+    binary_q1 = q1.dot(1 << np.arange(q1.size))
+    print('binary_u01=', bin(binary_u01), type(binary_u01))
+    quot01, r = binary_poly_div(int(binary_u01), int(binary_q1))
+
+    binary_u11 = u11.dot(1 << np.arange(u11.size))
+    binary_q1 = q1.dot(1 << np.arange(q1.size))
+    print('binary_u11=', bin(binary_u11), type(binary_u11))
+    quot11, r = binary_poly_div(int(binary_u11), int(binary_q1))
+
+
+    print("Quotient (poly):", bin_to_poly(quot11))
+    print("Remainder (poly):", bin_to_poly(r))
+
+
+    d00 = quot00
+    print('d00=', bin(d00))
+    d00_m = int_to_binary_matrix(d00, 8)
+    print('d00_m=', d00_m)
+
+    d10 = quot10
+    print('d10=', bin(d10))
+    d10_m = int_to_binary_matrix(d10, 8)
+    print('d10_m=', d10_m)
+
+
+    d01 = quot01
+    print('d01=', bin(d01))
+    d01_m = int_to_binary_matrix(d01, 8)
+    print('d01_m=', d01_m)
+
+    d11 = quot11
+    print('d11=', bin(d11))
+    d11_m = int_to_binary_matrix(d11, 8)
+    print('d11_m=', d11_m)
+
+
+
+    # flatten the matrices
+    d00_m_flat = d00_m.flatten()
+    d01_m_flat = d01_m.flatten()
+
+    # interleave bitwise: a[0], b[0], a[1], b[1], ...
+    d0 = np.ravel(np.column_stack((d00_m_flat, d01_m_flat)))
+
+    # convert d0 to matrix
+    # print("Merged bit-wise matrix (1x16):")
+    # print(d0.reshape(1, -1))
+
+    d00_m_flat = d00_m.flatten()
+    d11_m_flat = d11_m.flatten()
+    d2 = np.ravel(np.column_stack((d00_m_flat, d11_m_flat)))
+
+    d10_m_flat = d10_m.flatten()
+    d01_m_flat = d01_m.flatten()
+    d1 = np.ravel(np.column_stack((d10_m_flat, d01_m_flat)))
+
+    d10_m_flat = d10_m.flatten()
+    d11_m_flat = d11_m.flatten()
+    d3 = np.ravel(np.column_stack((d10_m_flat, d11_m_flat)))
+
+    print('d0=', d0)
+    print('d2=', d2)
+    print('d1=', d1)
+    print('d3=', d3)
+
+
+def binary_poly_div(dividend: int, divisor: int):
+    def degree(n): return n.bit_length() - 1
+
+    quotient = 0
+    remainder = dividend
+
+    while degree(remainder) >= degree(divisor):
+        shift = degree(remainder) - degree(divisor)
+        quotient ^= 1 << shift
+        remainder ^= divisor << shift
+
+    return quotient, remainder
+
+def bin_to_poly(n):
+    terms = [f"x^{i}" if i > 1 else "x" if i == 1 else "1"
+             for i in reversed(range(n.bit_length())) if (n >> i) & 1]
+    return " + ".join(terms) if terms else "0"
+
+# # x^14 + x^10 + x^7
+# dividend = (1 << 14) | (1 << 10) | (1 << 7)
+# # x^7 + 1
+# divisor  = (1 << 7) | 1
+
+# dividend = (1 << 13) | (1 << 8) | (1 << 7)
+# divisor  = (1 << 7) 
+
+
+# q, r = binary_poly_div(dividend, divisor)
+
+# print("Quotient (poly):", bin_to_poly(q))
+# print("Remainder (poly):", bin_to_poly(r))
+
+
+def int_to_binary_matrix(n: int, length: int = None) -> np.ndarray:
+    # Convert int to binary string without '0b'
+    bits = bin(n)[2:]
+
+    # Pad with leading zeros to reach desired length
+    if length is not None:
+        bits = bits.zfill(length)
+
+    # Convert to NumPy array of ints (LSB on the left)
+    bit_array = np.array([int(b) for b in reversed(bits)])
+    return np.array([bit_array])  # Wrap as 1xN matrix
+
 
 
 def cccrypto():
