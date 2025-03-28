@@ -40,18 +40,6 @@ decrypted_msg = decrypt_msg(encrypted_msg)
 - NumPy
 - SciPy
 
-## Installation
-
-```bash
-git clone https://github.com/yourusername/high-memory-cc-crypto.git
-cd high-memory-cc-crypto
-pip install -r requirements.txt
-```
-
-## License
-
-MIT
-
 ## References
 
 Based on "High-Memory Masked Convolutional Codes for Post-Quantum Cryptography" by Meir Ariel.
