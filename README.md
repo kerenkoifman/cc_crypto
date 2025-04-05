@@ -46,10 +46,5 @@ Generates and visualizes a **trellis diagram** based on convolutional code param
 - Dashed edges = input bit `1`
 
 ### Example Trellis Output
-Trellis created with  
-**p₀ = 1 + x²**,  
-**p₁ = 1 + x + x²**,  
-**K = 3**, and  
-**Input length = 6**.
-
+Trellis created with **p₀ = 1 + x²**, **p₁ = 1 + x + x²**, **K = 3**, and **Input length = 6**.
 ![Trellis Diagram](images/trellis.png)
