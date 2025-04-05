@@ -18,28 +18,15 @@ This project implements a novel post-quantum encryption scheme using high-memory
 - **Scalable Key Length**: Adaptable to different security requirements
 - **Efficient Hardware Implementation**: Uses the Viterbi algorithm for decoding
 
-## Getting Started
+## `trellis.py`
 
-```python
-# Generate a public key
-G = generate_public_key()
+The `trellis.py` file generates and visualizes a **trellis diagram** for convolutional encoders based on two generator polynomials. It simulates how the encoder transitions between states and produces outputs for each input bit.
 
-# Define a message (plaintext)
-m = np.array([1, 1, 1, 0, 0, 1])
+- You can customize the encoder by changing the polynomials and input length.
+- The trellis is drawn using NetworkX and Matplotlib.
+- Solid edges represent input bit `0`, dashed edges represent input bit `1`.
 
-# Encrypt the message
-encrypted_msg = encrypt_msg(G, m)
+### Example Trellis Output
 
-# Decrypt the message
-decrypted_msg = decrypt_msg(encrypted_msg)
-```
+![Trellis Diagram](images/trellis.png)
 
-## Requirements
-
-- Python 3.6+
-- NumPy
-- SciPy
-
-## References
-
-Based on "High-Memory Masked Convolutional Codes for Post-Quantum Cryptography" by Meir Ariel.
