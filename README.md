@@ -1,33 +1,59 @@
+Here's a simplified and updated version of your README that matches the actual implementation in the code files (`code_based_cryptosystem.py` and `trellis.py`):
+
+---
+
 # High-Memory Masked Convolutional Codes
 
-A post-quantum cryptography implementation based on convolutional codes.
+A simple encryption and decryption system using convolutional codes designed to be secure even against quantum computers.
 
 ## Overview
 
-This project implements a novel post-quantum encryption scheme using high-memory masked convolutional codes. Unlike traditional code-based methods that rely on block codes with fixed parameters, this approach:
+This project implements an encryption system that uses convolutional codes with **extra memory** (called high-memory). These codes are combined with random masking and permutations to create strong and flexible encryption.
 
-- Supports arbitrary plaintext lengths
-- Uses convolutional codes with strong error-correction capabilities
-- Employs a dual-layer error mechanism for enhanced security
-- Scales efficiently with linear decryption complexity
+### Main Components:
+
+- **Custom Generator Matrix**: Built from convolutional code polynomials
+- **Random Permutation & Masking**: Increases security
+- **Trellis Diagram & Viterbi Decoding**: Used to decode encrypted messages
 
 ## Features
 
-- **Stronger Security**: Offers significantly enhanced cryptanalytic resistance compared to Classic McEliece
-- **Flexible Code Selection**: Supports various convolutional codes to meet specific security needs
-- **Scalable Key Length**: Adaptable to different security requirements
-- **Efficient Hardware Implementation**: Uses the Viterbi algorithm for decoding
+- ✅ Works for messages of length 6
+- 🔁 Adds random errors to simulate real-world noise
+- 🔐 Uses two layers of polynomials to hide message bits
+- 🎯 Decodes using minimal Hamming distance path through a trellis
+- 🧠 Supports Viterbi-style decoding to recover the message
 
-## `trellis.py`
+## Files
 
-The `trellis.py` file generates and visualizes a **trellis diagram** for convolutional encoders based on two generator polynomials. It simulates how the encoder transitions between states and produces outputs for each input bit.
+### `code_based_cryptosystem.py`
 
-- You can customize the encoder by changing the polynomials and input length.
-- The trellis is drawn using NetworkX and Matplotlib.
-- Solid edges represent input bit `0`, dashed edges represent input bit `1`.
+Main logic for encryption and decryption.
+
+- **Generator Matrix (Gp & Gpq)**: Built from simple and high-memory convolutional polynomials
+- **Encrypt**: Encodes the message using `Gpq`, adds random errors, and applies a permutation
+- **Decrypt**: Uses inverse permutation, polynomial division, and bit-masking to recover possible decoded candidates
+- **Trellis Path Search**: Tries different decoded candidates and finds the best one using minimal Hamming distance
+- **Visualization**: Plots the trellis diagram for visual understanding
+
+Run the `main()` function to see the full process in action.
+
+### `trellis.py`
+
+Generates and visualizes a **trellis diagram** based on convolutional code parameters.
+
+- **Nodes and Connections**: Represent encoder states and transitions
+- **Edge Labels**: Show input bit and output bits (difference from expected bits)
+- **Visualization**: Uses NetworkX and Matplotlib to draw the trellis
+
+- Solid edges = input bit `0`  
+- Dashed edges = input bit `1`
 
 ### Example Trellis Output
-The image below presents the trellis diagram for the generator polynomials  
-**g₀ = 1 + x + x²** and **g₁ = 1 + x²**, with **K = 3** and input message length **6**.
-![Trellis Diagram](images/trellis.png)
+Trellis created with  
+**p₀ = 1 + x²**,  
+**p₁ = 1 + x + x²**,  
+**K = 3**, and  
+**Input length = 6**.
 
+![Trellis Diagram](images/trellis.png)
