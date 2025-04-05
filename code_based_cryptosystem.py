@@ -3,6 +3,7 @@ import numpy as np
 
 # import IPython.display as display
 from matplotlib import pyplot as plt
+from trellis import *
 import io
 import base64
 from numpy.linalg import inv
@@ -24,22 +25,16 @@ S = np.matrix(
 )
 
 S_1 = np.linalg.inv(S).astype(int) % 2
-# print('S-1:', S_1)
-
 p = np.random.permutation(30)
-# print("Permutation vector:\n", p)
 
 # Convert to permutation matrix
 R = np.eye(30)[p].astype(int)
-# print("\nPermutation matrix:\n", R)
 
 # Inverse permutation vector
 inv_p = np.argsort(p)
-# print("\nInverse permutation vector:\n", inv_p)
 
 # Inverse permutation matrix
 R_inv = np.eye(30)[inv_p].astype(int)
-# print("\nInverse permutation matrix:\n", R_inv)
 
 def generate_Gp():
     # Define the convolutional code polynomials p0 and p1
@@ -127,7 +122,7 @@ def encrypt_msg(G, m):
 def decrypt_msg(encrypted_message):
     inverse_permuted_msg = (encrypted_message @ R_inv) % 2
     print("\ninverse permuted message =", inverse_permuted_msg.flatten())
-    inverse_permuted_msg = np.matrix([inverse_permuted_msg])
+    inverse_permuted_msg = np.matrix(inverse_permuted_msg)
     print("inverse permuted message =", inverse_permuted_msg.A1)
 
     # 1+x^7
@@ -215,10 +210,11 @@ def decrypt_msg(encrypted_message):
     d11_m_flat = d11_m.flatten()
     d3 = np.ravel(np.column_stack((d10_m_flat, d11_m_flat)))
 
-    print("\nd0=", d0)
-    print("d2=", d2)
-    print("d1=", d1)
-    print("d3=", d3)
+    print(f"\nd0 = {d0}")
+    print(f"d1 = {d1}")
+    print(f"d2 = {d2}")
+    print(f"d3 = {d3}\n")
+    return d0,d1,d2,d3
 
 
 def binary_poly_div(dividend: int, divisor: int):
@@ -279,11 +275,7 @@ def test():
     print("v:", v)
     print("Gp:", Gp)
 
-def print_polynomials():
-    # Define the convolutional code polynomials
-    p0 = np.array([1, 0, 1])  # 1+x^2
-    p1 = np.array([1, 1, 1])  # 1+x+x^2
-
+def print_polynomials(p0, p1):
     # Define coefficient matrices
     g0 = np.array([1, 1])
     g1 = np.array([0, 1])
@@ -329,9 +321,47 @@ def print_permutation_matrices():
     print("\nInverse permutation vector inv_p:")
     print(inv_p)
 
+def find_min_path(trellis):
+    num_cols = len(trellis[0])
+    min_weight = 50
+    best_path = None
+
+    def dfs(node, curr_weight, curr_infobits):
+        nonlocal min_weight, best_path
+        # base case
+        if node.col == num_cols - 1:
+            if curr_weight <= min_weight:
+                min_weight = curr_weight
+                best_path = curr_infobits.copy()
+            return
+            
+        if len(node.connections) == 0:
+            return
+
+        for next_node, info_bit, output, weight in node.connections:
+            curr_infobits.append(info_bit)
+            dfs(next_node, curr_weight + weight, curr_infobits)
+            curr_infobits.pop()
+
+    # start only from initial state '00' at column 0
+    dfs(trellis[0][0], 0, [])
+
+    return min_weight, best_path
+
 # define main function
 def main():
-    print_polynomials()
+    # Define the convolutional code polynomials
+    p0 = [1, 0, 1]  # 1+x^2
+    p1 = [1, 1, 1]  # 1+x+x^2
+    K = 3
+    input_len = 6
+
+    d0 = [0,0,0,0,0,1,1,1,0,1,0,1,0,0,1,1]
+    d1 = [0,1,0,1,0,0,1,0,0,0,0,0,0,1,1,0]
+    d2 = [0,0,1,0,1,1,0,1,1,1,1,1,1,0,0,1]
+    d3 = [0,1,1,1,1,0,0,0,1,0,1,0,1,1,0,0]
+    d_i = [d0, d1, d2, d3]
+    print_polynomials(p0,p1)
 
     Gp = generate_Gp()
     Gpq = generate_Gpq()
@@ -343,10 +373,31 @@ def main():
     print_permutation_matrices() 
     print(f"\nmessage = {msg}")
     print(f"\nencrypted message = {encrypted_message.flatten()}")
-    original_message = decrypt_msg(encrypted_message)
-    print("\noriginal_message = ", original_message)
-    print("\n", original_message)
+    quotient_arr = decrypt_msg(encrypted_message)
+
+    overall_min_dist = 100
+    i = 0
+    for d in d_i:
+        trellis = create_trellis(p0,p1,input_len,K,d)
+        min_dist, info_word = find_min_path(trellis)
+        transformed_plaintext = np.array(info_word[:-2], dtype=int).reshape(1, 6)
+        original_plain_text_m = (transformed_plaintext @ S_1) % 2
+        if min_dist < overall_min_dist:
+            min_decoder = f"d{i}"
+
+        print(f"d{i} = {d}")
+        print(f"minimal distance = {min_dist}")
+        print(f"info_word = {info_word}")
+        print(f"transformed plaintext = {transformed_plaintext.flatten()}") # m\hat S
+        print(f"original plain text (m) = {np.array(original_plain_text_m).flatten()}\n")
+        i+=1
+
+
+    print(f"The valid viterbi decoder is: {min_decoder}\n")
+
+    visualize_trellis(create_trellis(p0,p1,input_len,K,d3))
 
 # using the special variable __main__
 if __name__ == "__main__":
     main()
+
