@@ -27,6 +27,7 @@ The `trellis.py` file generates and visualizes a **trellis diagram** for convolu
 - Solid edges represent input bit `0`, dashed edges represent input bit `1`.
 
 ### Example Trellis Output
-
+> The image below presents the trellis diagram for the generator polynomials  
+> **g₀ = 1 + x + x²** and **g₁ = 1 + x²**, with **K = 3** and input message length **6**.
 ![Trellis Diagram](images/trellis.png)
 
