@@ -1,7 +1,3 @@
-Here's a simplified and updated version of your README that matches the actual implementation in the code files (`code_based_cryptosystem.py` and `trellis.py`):
-
----
-
 # High-Memory Masked Convolutional Codes
 
 A simple encryption and decryption system using convolutional codes designed to be secure even against quantum computers.
