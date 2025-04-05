@@ -65,7 +65,7 @@ def visualize_trellis(trellis):
             G.add_node(node_id, pos=(col, -i), state_label=f"{trellis[i][col].state}")
     
     edge_styles = []  # store edge styles ('solid' or 'dashed')
-    edge_colors = []  # optional: style edges by color if desired
+    edge_colors = []  
     edge_list = []    # actual edges for drawing
     
     # Add edges using the unique IDs
@@ -86,7 +86,6 @@ def visualize_trellis(trellis):
     # Draw nodes with custom color
     nx.draw_networkx_nodes(G, pos, node_color='lightblue', node_size=700)
 
-    # In your visualize_trellis function, modify the edge drawing loop:
     # Draw edges with styles
     for edge, style, color in zip(edge_list, edge_styles, edge_colors):
         if style == 'dashed':
