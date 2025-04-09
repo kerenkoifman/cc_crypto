@@ -36,6 +36,11 @@ inv_p = np.argsort(p)
 # Inverse permutation matrix
 R_inv = np.eye(30)[inv_p].astype(int)
 
+# 4 dbg
+# R = np.identity(30)
+# R_inv = R
+
+
 def generate_Gp():
     # Define the convolutional code polynomials p0 and p1
     # 1+x^2
@@ -98,6 +103,30 @@ def generate_Gpq():
     
     return Gpq
 
+
+def generate_G(Gpq):
+    l0 = np.array([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0])
+    l1 = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+    L = [l0, l1]
+
+    G_hat = np.zeros((6,30), dtype=int)
+    # print('G_hat-shape:', G_hat.shape)
+    # print('G_hat:', G_hat)
+
+    k_rows = 6
+    for i in range(k_rows):
+        G_hat[i] = random.choice(L)
+
+
+    # print('G_hat:', G_hat)
+
+    G_sum = (Gpq + G_hat) % 2
+
+    G = (S@G_sum@R) % 2
+
+    return G
+
+
 def encrypt_msg(G, m):
     codeword = (m @ G) % 2 # multiplies the plaintext message m with the generator matrix G using matrix multiplication
 
@@ -146,22 +175,22 @@ def decrypt_msg(encrypted_message):
     # convert NumPy binary array to integer
     binary_even_bits_zeros = even_bits_zeros.dot(1 << np.arange(even_bits_zeros.size))
     binary_q0 = q0.dot(1 << np.arange(q0.size))
-    print("\nbinary_even_bits_zeros=", bin(binary_even_bits_zeros), type(binary_even_bits_zeros))
+    # print("\nbinary_even_bits_zeros=", bin(binary_even_bits_zeros), type(binary_even_bits_zeros))
     quot00, r = binary_poly_div(int(binary_even_bits_zeros), int(binary_q0))
 
     binary_even_bits_ones = even_bits_ones.dot(1 << np.arange(even_bits_ones.size))
     binary_q0 = q0.dot(1 << np.arange(q0.size))
-    print("binary_even_bits_ones=", bin(binary_even_bits_ones), type(binary_even_bits_ones))
+    # print("binary_even_bits_ones=", bin(binary_even_bits_ones), type(binary_even_bits_ones))
     quot10, r = binary_poly_div(int(binary_even_bits_ones), int(binary_q0))
 
     binary_odd_bits_zeros = odd_bits_zeros.dot(1 << np.arange(odd_bits_zeros.size))
     binary_q1 = q1.dot(1 << np.arange(q1.size))
-    print("binary_odd_bits_zeros=", bin(binary_odd_bits_zeros), type(binary_odd_bits_zeros))
+    # print("binary_odd_bits_zeros=", bin(binary_odd_bits_zeros), type(binary_odd_bits_zeros))
     quot01, r = binary_poly_div(int(binary_odd_bits_zeros), int(binary_q1))
 
     binary_odd_bits_ones = odd_bits_ones.dot(1 << np.arange(odd_bits_ones.size))
     binary_q1 = q1.dot(1 << np.arange(q1.size))
-    print("binary_odd_bits_ones=", bin(binary_odd_bits_ones), type(binary_odd_bits_ones))
+    # print("binary_odd_bits_ones=", bin(binary_odd_bits_ones), type(binary_odd_bits_ones))
     quot11, r = binary_poly_div(int(binary_odd_bits_ones), int(binary_q1))
 
     print("\nQuotient (poly):", bin_to_poly(quot11))
@@ -356,6 +385,7 @@ def main():
     K = 3
     input_len = 6
 
+    # debug
     d0 = [0,0,0,0,0,1,1,1,0,1,0,1,0,0,1,1]
     d1 = [0,1,0,1,0,0,1,0,0,0,0,0,0,1,1,0]
     d2 = [0,0,1,0,1,1,0,1,1,1,1,1,1,0,0,1]
@@ -365,10 +395,12 @@ def main():
 
     Gp = generate_Gp()
     Gpq = generate_Gpq()
-        
+    G = generate_G(Gpq)
+
     print_matrices(Gp, Gpq)
-    msg = np.array([1, 1, 1, 0, 0, 1])
-    encrypted_message = encrypt_msg(Gpq, msg)
+    # msg = np.array([1, 1, 1, 0, 0, 1])
+    msg = np.array([0, 1, 0, 0, 1, 1])
+    encrypted_message = encrypt_msg(G, msg)
 
     print_permutation_matrices() 
     print(f"\nmessage = {msg}")
@@ -377,25 +409,31 @@ def main():
 
     overall_min_dist = 100
     i = 0
-    for d in d_i:
-        trellis = create_trellis(p0,p1,input_len,K,d)
+    # for d in d_i:
+    for d in quotient_arr:
+        trellis = create_trellis(p0, p1, input_len, K, d)
         min_dist, info_word = find_min_path(trellis)
         transformed_plaintext = np.array(info_word[:-2], dtype=int).reshape(1, 6)
         original_plain_text_m = (transformed_plaintext @ S_1) % 2
         if min_dist < overall_min_dist:
             min_decoder = f"d{i}"
+            overall_min_dist = min_dist
+            min_original_plain_text_m = original_plain_text_m
+            min_d = d
 
         print(f"d{i} = {d}")
         print(f"minimal distance = {min_dist}")
         print(f"info_word = {info_word}")
         print(f"transformed plaintext = {transformed_plaintext.flatten()}") # m\hat S
         print(f"original plain text (m) = {np.array(original_plain_text_m).flatten()}\n")
-        i+=1
+        i += 1
 
 
     print(f"The valid viterbi decoder is: {min_decoder}\n")
+    print(f"original message = {msg}")
+    print(f"decrypt(encrypt(m)) = {np.array(min_original_plain_text_m).flatten()}\n")
 
-    visualize_trellis(create_trellis(p0,p1,input_len,K,d3))
+    visualize_trellis(create_trellis(p0, p1, input_len, K, min_d))
 
 # using the special variable __main__
 if __name__ == "__main__":
