@@ -284,7 +284,7 @@ def bin_to_poly(n):
 # print("Quotient (poly):", bin_to_poly(q))
 # print("Remainder (poly):", bin_to_poly(r))
 
-
+# LSB on the left
 def int_to_binary_matrix(n: int, length: int = None) -> np.ndarray:
     # Convert int to binary string without '0b'
     bits = bin(n)[2:]
@@ -296,6 +296,28 @@ def int_to_binary_matrix(n: int, length: int = None) -> np.ndarray:
     # Convert to NumPy array of ints (LSB on the left)
     bit_array = np.array([int(b) for b in reversed(bits)])
     return np.array([bit_array])  # Wrap as 1xN matrix
+
+# MSB on the left
+def int_to_binary_matrix2(n, length=None):
+    # Convert to binary string without '0b'
+    bin_str = bin(n)[2:]
+    
+    # Optionally pad with zeros to a fixed length
+    if length:
+        bin_str = bin_str.zfill(length)
+    
+    # Convert to NumPy array of integers
+    return np.array([int(bit) for bit in bin_str])
+
+
+def add_binary_polynomials(p1, p2):
+    # Pad the shorter one with leading zeros
+    max_len = max(len(p1), len(p2))
+    p1 = np.pad(p1, (max_len - len(p1), 0))
+    p2 = np.pad(p2, (max_len - len(p2), 0))
+    
+    return (p1 ^ p2)  # XOR for GF(2) addition
+
 
 
 def test():
@@ -378,7 +400,7 @@ def find_min_path(trellis):
     return min_weight, best_path
 
 # define main function
-def main():
+def cc_crypto(msg):
     # Define the convolutional code polynomials
     p0 = [1, 0, 1]  # 1+x^2
     p1 = [1, 1, 1]  # 1+x+x^2
@@ -398,8 +420,6 @@ def main():
     G = generate_G(Gpq)
 
     print_matrices(Gp, Gpq)
-    # msg = np.array([1, 1, 1, 0, 0, 1])
-    msg = np.array([0, 1, 0, 0, 1, 1])
     encrypted_message = encrypt_msg(G, msg)
 
     print_permutation_matrices() 
@@ -421,7 +441,7 @@ def main():
             min_original_plain_text_m = original_plain_text_m
             min_d = d
 
-        print(f"d{i} = {d}")
+        print(f"d{i} = {min_d}")
         print(f"minimal distance = {min_dist}")
         print(f"info_word = {info_word}")
         print(f"transformed plaintext = {transformed_plaintext.flatten()}") # m\hat S
@@ -433,7 +453,78 @@ def main():
     print(f"original message = {msg}")
     print(f"decrypt(encrypt(m)) = {np.array(min_original_plain_text_m).flatten()}\n")
 
-    visualize_trellis(create_trellis(p0, p1, input_len, K, min_d))
+    # visualize_trellis(create_trellis(p0, p1, input_len, K, min_d))
+
+    return min_original_plain_text_m
+
+
+def cc_crypto_crc(msg):
+    # multiply by x^3
+    crc_r = [1, 0, 0, 0]  # x^3, r = 3
+
+    crc_p = [1, 0, 1, 1]  # x^3+x+1
+
+    crc_msg = np.convolve(msg, crc_r) % 2
+    print(f'crc_msg={crc_msg}')
+
+
+    # Convert list to binary string and then to integer
+    crc_p_bin_str = ''.join(str(bit) for bit in crc_p)
+    crc_p_int = int(crc_p_bin_str, 2)
+
+    crc_msg_bin_str = ''.join(str(bit) for bit in crc_msg)
+    crc_msg_int = int(crc_msg_bin_str, 2)
+
+    # crc_msg_int = crc_msg.dot(1 << np.arange(crc_msg.size))
+    # crc_p_int = np_crc_p.dot(1 << np.arange(np_crc_p.size))
+    print("crc_msg_int=", bin(crc_msg_int), type(crc_msg_int))
+    print("crc_p_int=", bin(crc_p_int), type(crc_p_int))
+    quot, rem = binary_poly_div(int(crc_msg_int), int(crc_p_int))
+
+    print()
+    print("Quotient (poly):", bin_to_poly(quot))
+    print("Remainder (poly):", bin_to_poly(rem))
+
+    rem_m = int_to_binary_matrix2(rem, 3)
+    print("Remainder (matrix):", rem_m)
+
+    crc_msg2 = add_binary_polynomials(crc_msg, rem_m)
+    print("crc_msg2:", crc_msg2)
+
+
+    ccc_org_msg = cc_crypto(crc_msg2)
+    print("ccc_org_msg:", np.array(ccc_org_msg).flatten())
+
+    org_msg = np.array(ccc_org_msg).flatten()[:3]
+
+    print(f"message = {msg}")
+    print(f"decrypt(encrypt(msg)) = {np.array(org_msg).flatten()}\n")
+
+    return org_msg
+
+
+
+def main():
+
+    # msg = np.array([1, 1, 1, 0, 0, 1])
+    msg = np.array([0, 1, 0, 0, 1, 1])
+
+    ccc_msg = cc_crypto(msg)
+
+    print(f"message = {msg}")
+    print(f"decrypt(encrypt(msg)) = {np.array(ccc_msg).flatten()}\n")
+
+    print('~'*77)
+
+    # add CRC to msg
+    # crc_msg = np.array([1, 0, 1])
+
+    # ccc_crc_msg = cc_crypto_crc(crc_msg)
+
+    # print(f"message = {crc_msg}")
+    # print(f"decrypt(encrypt(msg)) = {np.array(ccc_crc_msg).flatten()}\n")
+
+
 
 # using the special variable __main__
 if __name__ == "__main__":
