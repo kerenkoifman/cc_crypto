@@ -132,7 +132,7 @@ def encrypt_msg(G, m):
 
     # create error vector
     err = np.zeros(shape=(1, 30), dtype=int)
-    error_count = 3
+    error_count = 2
     # randomly introduce errors in the error vector
     for i in range(error_count):
         pos = random.randint(0, 30 - 1)
