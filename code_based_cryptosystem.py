@@ -13,32 +13,60 @@ from scipy.ndimage import shift
 np.random.seed(12345)
 
 # global variables
-S = np.matrix(
-    [
-        [1, 0, 0, 1, 0, 0],
-        [0, 1, 0, 0, 0, 1],
-        [0, 0, 1, 0, 0, 0],
-        [0, 0, 1, 1, 1, 0],
-        [0, 0, 0, 0, 1, 0],
-        [0, 0, 1, 0, 1, 1],
-    ]
-)
+# @@@
 
-S_1 = np.linalg.inv(S).astype(int) % 2
-p = np.random.permutation(30)
+# code to generate different S-matrices
+def generate_S_matrix_new():
+    S = np.matrix(
+        [
+            [1, 0, 0, 1, 0, 0],
+            [0, 1, 0, 0, 0, 1],
+            [0, 0, 1, 0, 0, 0],
+            [0, 0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 1, 0],
+            [0, 0, 1, 0, 1, 1],
+        ]
+    )
 
-# Convert to permutation matrix
-R = np.eye(30)[p].astype(int)
+    print('S-Matrix:')
+    print(S)
 
-# Inverse permutation vector
-inv_p = np.argsort(p)
+    np.save('data/s_matrix.npy', S)
 
-# Inverse permutation matrix
-R_inv = np.eye(30)[inv_p].astype(int)
+    S2 = np.load('data/s_matrix.npy')
+    print('S2-Matrix:')
+    print(S2)
 
-# 4 dbg
-# R = np.identity(30)
-# R_inv = R
+
+# generate S-Matrix
+def generate_S_matrix():
+    S = np.load('data/s_matrix.npy')
+
+    S_1 = np.linalg.inv(S).astype(int) % 2
+
+    return S, S_1
+
+
+# generate R-Matrix
+def generate_R_matrix():
+    p = np.random.permutation(30)
+
+    # Convert to permutation matrix
+    R = np.eye(30)[p].astype(int)
+
+    # Inverse permutation vector
+    inv_p = np.argsort(p)
+
+    # Inverse permutation matrix
+    R_inv = np.eye(30)[inv_p].astype(int)
+
+    # 4 dbg
+    # print("\nPermutation vector p:")
+    # print(p)
+    # print("\nInverse permutation vector inv_p:")
+    # print(inv_p)
+
+    return R, R_inv
 
 
 def generate_Gp():
@@ -104,7 +132,7 @@ def generate_Gpq():
     return Gpq
 
 
-def generate_G(Gpq):
+def generate_G(S, R, Gpq):
     l0 = np.array([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0])
     l1 = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
     L = [l0, l1]
@@ -148,7 +176,7 @@ def encrypt_msg(G, m):
     return codeword_err
 
 
-def decrypt_msg(encrypted_message):
+def decrypt_msg(R_inv, encrypted_message):
     inverse_permuted_msg = (encrypted_message @ R_inv) % 2
     print("\ninverse permuted message =", inverse_permuted_msg.flatten())
     inverse_permuted_msg = np.matrix(inverse_permuted_msg)
@@ -355,7 +383,7 @@ def print_matrices(Gp, Gpq):
     for row in Gpq:
         print(' '.join(map(str, row)))
 
-def print_permutation_matrices():
+def print_permutation_matrices(R, R_inv):
     print("\nPermutation Matrix R:")
     print("-----------------------------------------")
     for row in R:
@@ -366,11 +394,6 @@ def print_permutation_matrices():
     for row in R_inv:
         print(' '.join(map(str, row)))
     
-    print("\nPermutation vector p:")
-    print(p)
-    
-    print("\nInverse permutation vector inv_p:")
-    print(inv_p)
 
 def find_min_path(trellis):
     num_cols = len(trellis[0])
@@ -415,17 +438,21 @@ def cc_crypto(msg):
     d_i = [d0, d1, d2, d3]
     print_polynomials(p0,p1)
 
+    S, S_1 = generate_S_matrix()
+
+    R, R_inv = generate_R_matrix()
+
     Gp = generate_Gp()
     Gpq = generate_Gpq()
-    G = generate_G(Gpq)
+    G = generate_G(S, R, Gpq)
 
     print_matrices(Gp, Gpq)
     encrypted_message = encrypt_msg(G, msg)
 
-    print_permutation_matrices() 
+    print_permutation_matrices(R, R_inv) 
     print(f"\nmessage = {msg}")
     print(f"\nencrypted message = {encrypted_message.flatten()}")
-    quotient_arr = decrypt_msg(encrypted_message)
+    quotient_arr = decrypt_msg(R_inv, encrypted_message)
 
     overall_min_dist = 100
     i = 0
