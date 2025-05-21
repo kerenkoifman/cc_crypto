@@ -1,5 +1,6 @@
 import random
 import numpy as np
+import json
 
 # import IPython.display as display
 from matplotlib import pyplot as plt
@@ -14,6 +15,20 @@ np.random.seed(12345)
 
 # global variables
 # @@@
+
+
+
+def save_list_to_file(filename, lst):
+    with open(filename, 'w') as f:
+        # indent=2 is not needed but makes the file human-readable if the data is nested
+        json.dump(lst, f, indent=2) 
+
+def load_list_from_file(filename):
+    with open(filename, 'r') as f:
+        lst = json.load(f)
+    return lst
+
+
 
 # code to generate different S-matrices
 def generate_S_matrix_new():
@@ -70,12 +85,6 @@ def generate_R_matrix():
 
 
 def generate_Gp():
-    # Define the convolutional code polynomials p0 and p1
-    # 1+x^2
-    p0 = np.array([1, 0, 1])
-    # 1+x+x^2
-    p1 = np.array([1, 1, 1])
-
     # Define coefficient matrices
     g0 = np.array([1, 1])
     g1 = np.array([0, 1])
@@ -99,10 +108,12 @@ def generate_Gp():
     
     return Gp
 
-def generate_Gpq():
+def generate_Gpq(p0_lst, p1_lst):
     # Define the convolutional code polynomials p0 and p1
-    p0 = np.array([1, 0, 1])  # 1+x^2
-    p1 = np.array([1, 1, 1])  # 1+x+x^2
+    # p0 = np.array([1, 0, 1])  # 1+x^2
+    # p1 = np.array([1, 1, 1])  # 1+x+x^2
+    p0 = np.array(p0_lst)  # 1+x^2
+    p1 = np.array(p1_lst)  # 1+x+x^2
 
     # Define high-memory polynomials
     q0 = np.array([1, 0, 0, 0, 0, 0, 0, 1])  # 1+x^7
@@ -424,9 +435,32 @@ def find_min_path(trellis):
 
 # define main function
 def cc_crypto(msg):
+    # Define the convolutional code polynomials p0 and p1
+    # 1+x^2
+    # p0 = np.array([1, 0, 1])
+    # p0 = np.array(p0)
+    # 1+x+x^2
+    # p1 = np.array([1, 1, 1])
+    # p1 = np.array(p1)
+
+    # p0_lst = [1, 0, 1]
+    # p1_lst = [1, 1, 1]
+    # filename_p0 = 'data/p0.json'
+    # filename_p1 = 'data/p1.json'
+    # save_list_to_file(filename_p0, p0_lst)
+    # p0_lst_2 = load_list_from_file(filename_p0)
+    # save_list_to_file(filename_p1, p1_lst)
+    # p1_lst_2 = load_list_from_file(filename_p1)
+    # print('p0_lst=', p0_lst, 'p0_lst_2=', p0_lst_2)
+
+    filename_p0 = 'data/p0.json'
+    filename_p1 = 'data/p1.json'
+    p0 = load_list_from_file(filename_p0)
+    p1 = load_list_from_file(filename_p1)
+
     # Define the convolutional code polynomials
-    p0 = [1, 0, 1]  # 1+x^2
-    p1 = [1, 1, 1]  # 1+x+x^2
+    # p0 = [1, 0, 1]  # 1+x^2
+    # p1 = [1, 1, 1]  # 1+x+x^2
     K = 3
     input_len = 6
 
@@ -436,14 +470,14 @@ def cc_crypto(msg):
     d2 = [0,0,1,0,1,1,0,1,1,1,1,1,1,0,0,1]
     d3 = [0,1,1,1,1,0,0,0,1,0,1,0,1,1,0,0]
     d_i = [d0, d1, d2, d3]
-    print_polynomials(p0,p1)
+    print_polynomials(p0, p1)
 
     S, S_1 = generate_S_matrix()
 
     R, R_inv = generate_R_matrix()
 
     Gp = generate_Gp()
-    Gpq = generate_Gpq()
+    Gpq = generate_Gpq(p0, p1)
     G = generate_G(S, R, Gpq)
 
     print_matrices(Gp, Gpq)
