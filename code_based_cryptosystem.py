@@ -84,12 +84,15 @@ def generate_R_matrix():
     return R, R_inv
 
 
-def generate_Gp():
+def generate_Gp(p0_lst, p1_lst):
     # Define coefficient matrices
-    g0 = np.array([1, 1])
-    g1 = np.array([0, 1])
-    g2 = np.array([1, 1])
-    
+    # g0 = np.array([1, 1])
+    # g1 = np.array([0, 1])
+    # g2 = np.array([1, 1])
+    g0 = np.array([p0_lst[0], p1_lst[0]])
+    g1 = np.array([p0_lst[1], p1_lst[1]])
+    g2 = np.array([p0_lst[2], p1_lst[2]])
+
     # Parameters
     k_rows = 6
     n = 2  # Number of output bits per input bit (rate 1/2)
@@ -108,7 +111,7 @@ def generate_Gp():
     
     return Gp
 
-def generate_Gpq(p0_lst, p1_lst):
+def generate_Gpq(p0_lst, p1_lst, q0_lst, q1_lst):
     # Define the convolutional code polynomials p0 and p1
     # p0 = np.array([1, 0, 1])  # 1+x^2
     # p1 = np.array([1, 1, 1])  # 1+x+x^2
@@ -116,8 +119,10 @@ def generate_Gpq(p0_lst, p1_lst):
     p1 = np.array(p1_lst)  # 1+x+x^2
 
     # Define high-memory polynomials
-    q0 = np.array([1, 0, 0, 0, 0, 0, 0, 1])  # 1+x^7
-    q1 = np.array([0, 0, 0, 0, 0, 0, 0, 1])  # x^7
+    # q0 = np.array([1, 0, 0, 0, 0, 0, 0, 1])  # 1+x^7
+    # q1 = np.array([0, 0, 0, 0, 0, 0, 0, 1])  # x^7
+    q0 = np.array(q0_lst)  # 1+x^7
+    q1 = np.array(q1_lst)  # x^7
 
     # Multiply the polynomials and take mod 2
     pq0 = np.convolve(p0, q0) % 2
@@ -187,16 +192,18 @@ def encrypt_msg(G, m):
     return codeword_err
 
 
-def decrypt_msg(R_inv, encrypted_message):
+def decrypt_msg(R_inv, q0_lst, q1_lst, encrypted_message):
     inverse_permuted_msg = (encrypted_message @ R_inv) % 2
     print("\ninverse permuted message =", inverse_permuted_msg.flatten())
     inverse_permuted_msg = np.matrix(inverse_permuted_msg)
     print("inverse permuted message =", inverse_permuted_msg.A1)
 
     # 1+x^7
-    q0 = np.array([1, 0, 0, 0, 0, 0, 0, 1])
+    # q0 = np.array([1, 0, 0, 0, 0, 0, 0, 1])
+    q0 = np.array(q0_lst)
     # x^7
-    q1 = np.array([0, 0, 0, 0, 0, 0, 0, 1])
+    # q1 = np.array([0, 0, 0, 0, 0, 0, 0, 1])
+    q1 = np.array(q1_lst)
 
     # create masks
     arr = np.array(inverse_permuted_msg.A1)
@@ -367,10 +374,14 @@ def test():
 
 def print_polynomials(p0, p1):
     # Define coefficient matrices
-    g0 = np.array([1, 1])
-    g1 = np.array([0, 1])
-    g2 = np.array([1, 1])
+    # g0 = np.array([1, 1])
+    # g1 = np.array([0, 1])
+    # g2 = np.array([1, 1])
     
+    g0 = np.array([p0[0], p1[0]])
+    g1 = np.array([p0[1], p1[1]])
+    g2 = np.array([p0[2], p1[2]])
+
     # Print polynomials
     print("\nPolynomials:")
     print(f"p0 = {p0} (1+x^2)")
@@ -458,6 +469,11 @@ def cc_crypto(msg):
     p0 = load_list_from_file(filename_p0)
     p1 = load_list_from_file(filename_p1)
 
+    filename_q0 = 'data/q0.json'
+    filename_q1 = 'data/q1.json'
+    q0 = load_list_from_file(filename_q0)
+    q1 = load_list_from_file(filename_q1)
+
     # Define the convolutional code polynomials
     # p0 = [1, 0, 1]  # 1+x^2
     # p1 = [1, 1, 1]  # 1+x+x^2
@@ -476,8 +492,8 @@ def cc_crypto(msg):
 
     R, R_inv = generate_R_matrix()
 
-    Gp = generate_Gp()
-    Gpq = generate_Gpq(p0, p1)
+    Gp = generate_Gp(p0, p1)
+    Gpq = generate_Gpq(p0, p1, q0, q1)
     G = generate_G(S, R, Gpq)
 
     print_matrices(Gp, Gpq)
@@ -486,7 +502,7 @@ def cc_crypto(msg):
     print_permutation_matrices(R, R_inv) 
     print(f"\nmessage = {msg}")
     print(f"\nencrypted message = {encrypted_message.flatten()}")
-    quotient_arr = decrypt_msg(R_inv, encrypted_message)
+    quotient_arr = decrypt_msg(R_inv, q0, q1, encrypted_message)
 
     overall_min_dist = 100
     i = 0
