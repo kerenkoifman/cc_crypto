@@ -13,11 +13,6 @@ from scipy.ndimage import shift
 # randomize
 np.random.seed(12345)
 
-# global variables
-# @@@
-
-
-
 def save_list_to_file(filename, lst):
     with open(filename, 'w') as f:
         # indent=2 is not needed but makes the file human-readable if the data is nested
@@ -27,8 +22,6 @@ def load_list_from_file(filename):
     with open(filename, 'r') as f:
         lst = json.load(f)
     return lst
-
-
 
 # code to generate different S-matrices
 def generate_S_matrix_new():
@@ -42,58 +35,29 @@ def generate_S_matrix_new():
             [0, 0, 1, 0, 1, 1],
         ]
     )
-
-    print('S-Matrix:')
-    print(S)
-
     np.save('data/s_matrix.npy', S)
-
     S2 = np.load('data/s_matrix.npy')
-    print('S2-Matrix:')
-    print(S2)
-
 
 # generate S-Matrix
 def generate_S_matrix():
     S = np.load('data/s_matrix.npy')
-
     S_1 = np.linalg.inv(S).astype(int) % 2
-
     return S, S_1
-
 
 # generate R-Matrix
 def generate_R_matrix():
     p = np.random.permutation(30)
-
-    # Convert to permutation matrix
-    R = np.eye(30)[p].astype(int)
-
-    # Inverse permutation vector
-    inv_p = np.argsort(p)
-
-    # Inverse permutation matrix
-    R_inv = np.eye(30)[inv_p].astype(int)
-
-    # 4 dbg
-    # print("\nPermutation vector p:")
-    # print(p)
-    # print("\nInverse permutation vector inv_p:")
-    # print(inv_p)
-
+    R = np.eye(30)[p].astype(int) # Convert to permutation matrix
+    inv_p = np.argsort(p) # Inverse permutation vector
+    R_inv = np.eye(30)[inv_p].astype(int) # Inverse permutation matrix
     return R, R_inv
-
 
 def generate_Gp(p0_lst, p1_lst):
     # Define coefficient matrices
-    # g0 = np.array([1, 1])
-    # g1 = np.array([0, 1])
-    # g2 = np.array([1, 1])
     g0 = np.array([p0_lst[0], p1_lst[0]])
     g1 = np.array([p0_lst[1], p1_lst[1]])
     g2 = np.array([p0_lst[2], p1_lst[2]])
 
-    # Parameters
     k_rows = 6
     n = 2  # Number of output bits per input bit (rate 1/2)
     p = 2  # Memory length (p0 and p1 are degree 2 polynomials)
@@ -113,22 +77,17 @@ def generate_Gp(p0_lst, p1_lst):
 
 def generate_Gpq(p0_lst, p1_lst, q0_lst, q1_lst):
     # Define the convolutional code polynomials p0 and p1
-    # p0 = np.array([1, 0, 1])  # 1+x^2
-    # p1 = np.array([1, 1, 1])  # 1+x+x^2
     p0 = np.array(p0_lst)  # 1+x^2
     p1 = np.array(p1_lst)  # 1+x+x^2
 
     # Define high-memory polynomials
-    # q0 = np.array([1, 0, 0, 0, 0, 0, 0, 1])  # 1+x^7
-    # q1 = np.array([0, 0, 0, 0, 0, 0, 0, 1])  # x^7
-    q0 = np.array(q0_lst)  # 1+x^7
-    q1 = np.array(q1_lst)  # x^7
+    q0 = np.array(q0_lst)  
+    q1 = np.array(q1_lst)  
 
     # Multiply the polynomials and take mod 2
     pq0 = np.convolve(p0, q0) % 2
     pq1 = np.convolve(p1, q1) % 2
 
-    # Parameters
     k_rows = 6
     n = 2  # Number of output bits per input bit (rate 1/2)
 
@@ -154,22 +113,14 @@ def generate_G(S, R, Gpq):
     L = [l0, l1]
 
     G_hat = np.zeros((6,30), dtype=int)
-    # print('G_hat-shape:', G_hat.shape)
-    # print('G_hat:', G_hat)
 
     k_rows = 6
     for i in range(k_rows):
         G_hat[i] = random.choice(L)
 
-
-    # print('G_hat:', G_hat)
-
     G_sum = (Gpq + G_hat) % 2
-
     G = (S@G_sum@R) % 2
-
     return G
-
 
 def encrypt_msg(G, m):
     codeword = (m @ G) % 2 # multiplies the plaintext message m with the generator matrix G using matrix multiplication
@@ -182,13 +133,7 @@ def encrypt_msg(G, m):
         pos = random.randint(0, 30 - 1)
         err[0, pos] = 1
 
-    # print('err:         ', err)
-
     codeword_err = (codeword + err) % 2
-
-    # print('codeword:    ', codeword)
-    # print('codeword_err:', codeword_err)
-
     return codeword_err
 
 
@@ -198,11 +143,7 @@ def decrypt_msg(R_inv, q0_lst, q1_lst, encrypted_message):
     inverse_permuted_msg = np.matrix(inverse_permuted_msg)
     print("inverse permuted message =", inverse_permuted_msg.A1)
 
-    # 1+x^7
-    # q0 = np.array([1, 0, 0, 0, 0, 0, 0, 1])
     q0 = np.array(q0_lst)
-    # x^7
-    # q1 = np.array([0, 0, 0, 0, 0, 0, 0, 1])
     q1 = np.array(q1_lst)
 
     # create masks
@@ -221,22 +162,18 @@ def decrypt_msg(R_inv, q0_lst, q1_lst, encrypted_message):
     # convert NumPy binary array to integer
     binary_even_bits_zeros = even_bits_zeros.dot(1 << np.arange(even_bits_zeros.size))
     binary_q0 = q0.dot(1 << np.arange(q0.size))
-    # print("\nbinary_even_bits_zeros=", bin(binary_even_bits_zeros), type(binary_even_bits_zeros))
     quot00, r = binary_poly_div(int(binary_even_bits_zeros), int(binary_q0))
 
     binary_even_bits_ones = even_bits_ones.dot(1 << np.arange(even_bits_ones.size))
     binary_q0 = q0.dot(1 << np.arange(q0.size))
-    # print("binary_even_bits_ones=", bin(binary_even_bits_ones), type(binary_even_bits_ones))
     quot10, r = binary_poly_div(int(binary_even_bits_ones), int(binary_q0))
 
     binary_odd_bits_zeros = odd_bits_zeros.dot(1 << np.arange(odd_bits_zeros.size))
     binary_q1 = q1.dot(1 << np.arange(q1.size))
-    # print("binary_odd_bits_zeros=", bin(binary_odd_bits_zeros), type(binary_odd_bits_zeros))
     quot01, r = binary_poly_div(int(binary_odd_bits_zeros), int(binary_q1))
 
     binary_odd_bits_ones = odd_bits_ones.dot(1 << np.arange(odd_bits_ones.size))
     binary_q1 = q1.dot(1 << np.arange(q1.size))
-    # print("binary_odd_bits_ones=", bin(binary_odd_bits_ones), type(binary_odd_bits_ones))
     quot11, r = binary_poly_div(int(binary_odd_bits_ones), int(binary_q1))
 
     print("\nQuotient (poly):", bin_to_poly(quot11))
@@ -270,9 +207,6 @@ def decrypt_msg(R_inv, q0_lst, q1_lst, encrypted_message):
     d0 = np.ravel(np.column_stack((d00_m_flat, d01_m_flat)))
 
     # convert d0 to matrix
-    # print("Merged bit-wise matrix (1x16):")
-    # print(d0.reshape(1, -1))
-
     d00_m_flat = d00_m.flatten()
     d11_m_flat = d11_m.flatten()
     d2 = np.ravel(np.column_stack((d00_m_flat, d11_m_flat)))
@@ -315,21 +249,6 @@ def bin_to_poly(n):
     ]
     return " + ".join(terms) if terms else "0"
 
-
-# # x^14 + x^10 + x^7
-# dividend = (1 << 14) | (1 << 10) | (1 << 7)
-# # x^7 + 1
-# divisor  = (1 << 7) | 1
-
-# dividend = (1 << 13) | (1 << 8) | (1 << 7)
-# divisor  = (1 << 7)
-
-
-# q, r = binary_poly_div(dividend, divisor)
-
-# print("Quotient (poly):", bin_to_poly(q))
-# print("Remainder (poly):", bin_to_poly(r))
-
 # LSB on the left
 def int_to_binary_matrix(n: int, length: int = None) -> np.ndarray:
     # Convert int to binary string without '0b'
@@ -367,17 +286,11 @@ def add_binary_polynomials(p1, p2):
 
 
 def test():
-    # print('p0:', p0)
-    # print('g0:', g0)
     print("v:", v)
     print("Gp:", Gp)
 
 def print_polynomials(p0, p1):
     # Define coefficient matrices
-    # g0 = np.array([1, 1])
-    # g1 = np.array([0, 1])
-    # g2 = np.array([1, 1])
-    
     g0 = np.array([p0[0], p1[0]])
     g1 = np.array([p0[1], p1[1]])
     g2 = np.array([p0[2], p1[2]])
@@ -447,22 +360,6 @@ def find_min_path(trellis):
 # define main function
 def cc_crypto(msg):
     # Define the convolutional code polynomials p0 and p1
-    # 1+x^2
-    # p0 = np.array([1, 0, 1])
-    # p0 = np.array(p0)
-    # 1+x+x^2
-    # p1 = np.array([1, 1, 1])
-    # p1 = np.array(p1)
-
-    # p0_lst = [1, 0, 1]
-    # p1_lst = [1, 1, 1]
-    # filename_p0 = 'data/p0.json'
-    # filename_p1 = 'data/p1.json'
-    # save_list_to_file(filename_p0, p0_lst)
-    # p0_lst_2 = load_list_from_file(filename_p0)
-    # save_list_to_file(filename_p1, p1_lst)
-    # p1_lst_2 = load_list_from_file(filename_p1)
-    # print('p0_lst=', p0_lst, 'p0_lst_2=', p0_lst_2)
 
     filename_p0 = 'data/p0.json'
     filename_p1 = 'data/p1.json'
@@ -474,9 +371,6 @@ def cc_crypto(msg):
     q0 = load_list_from_file(filename_q0)
     q1 = load_list_from_file(filename_q1)
 
-    # Define the convolutional code polynomials
-    # p0 = [1, 0, 1]  # 1+x^2
-    # p1 = [1, 1, 1]  # 1+x+x^2
     K = 3
     input_len = 6
 
@@ -496,10 +390,10 @@ def cc_crypto(msg):
     Gpq = generate_Gpq(p0, p1, q0, q1)
     G = generate_G(S, R, Gpq)
 
-    print_matrices(Gp, Gpq)
+    # print_matrices(Gp, Gpq)
     encrypted_message = encrypt_msg(G, msg)
 
-    print_permutation_matrices(R, R_inv) 
+    #print_permutation_matrices(R, R_inv) 
     print(f"\nmessage = {msg}")
     print(f"\nencrypted message = {encrypted_message.flatten()}")
     quotient_arr = decrypt_msg(R_inv, q0, q1, encrypted_message)
@@ -525,12 +419,11 @@ def cc_crypto(msg):
         print(f"original plain text (m) = {np.array(original_plain_text_m).flatten()}\n")
         i += 1
 
-
     print(f"The valid viterbi decoder is: {min_decoder}\n")
     print(f"original message = {msg}")
     print(f"decrypt(encrypt(m)) = {np.array(min_original_plain_text_m).flatten()}\n")
 
-    # visualize_trellis(create_trellis(p0, p1, input_len, K, min_d))
+    visualize_trellis(create_trellis(p0, p1, input_len, K, min_d))
 
     return min_original_plain_text_m
 
@@ -538,12 +431,10 @@ def cc_crypto(msg):
 def cc_crypto_crc(msg):
     # multiply by x^3
     crc_r = [1, 0, 0, 0]  # x^3, r = 3
-
     crc_p = [1, 0, 1, 1]  # x^3+x+1
 
     crc_msg = np.convolve(msg, crc_r) % 2
     print(f'crc_msg={crc_msg}')
-
 
     # Convert list to binary string and then to integer
     crc_p_bin_str = ''.join(str(bit) for bit in crc_p)
@@ -579,31 +470,19 @@ def cc_crypto_crc(msg):
 
     return org_msg
 
-
-
 def main():
-
-    # msg = np.array([1, 1, 1, 0, 0, 1])
     msg = np.array([0, 1, 0, 0, 1, 1])
-
     ccc_msg = cc_crypto(msg)
-
     print(f"message = {msg}")
     print(f"decrypt(encrypt(msg)) = {np.array(ccc_msg).flatten()}\n")
-
     print('~'*77)
 
     # add CRC to msg
     # crc_msg = np.array([1, 0, 1])
-
     # ccc_crc_msg = cc_crypto_crc(crc_msg)
-
     # print(f"message = {crc_msg}")
     # print(f"decrypt(encrypt(msg)) = {np.array(ccc_crc_msg).flatten()}\n")
 
-
-
-# using the special variable __main__
 if __name__ == "__main__":
     main()
 
