@@ -881,7 +881,7 @@ def main():
     else:
         print("❌ Decryption failed!")
     
-    results = check_recovery_with_crc(msg, raw_msg, len(raw_msg))
+    results = check_recovery_with_crc(original_message.flatten(), raw_msg, len(raw_msg))
 
 
     
